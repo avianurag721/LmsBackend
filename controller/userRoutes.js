@@ -36,19 +36,12 @@ const userSignUp = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     console.log("hashedPassword", hashedPassword);
 
-    // Generate verification code for verifcation of hte email
-    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
-    const verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
-    sendVerificationEmail(email, verificationCode);
-
     // Create and save the new user
     const newUser = new User({
       firstName,lastName,
       email,
       userType,
       password: hashedPassword,
-      verificationCode,
-      verificationCodeExpires,
     });
     await newUser.save();
     // Respond with success

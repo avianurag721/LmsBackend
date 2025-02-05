@@ -1,29 +1,9 @@
 require('dotenv').config();
 
 const multer = require('multer');
-const { S3 } = require('@aws-sdk/client-s3');
-const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
 const path = require('path');
 
-const secretsManagerClient = new SecretsManagerClient({ region: process.env.AWS_REGION });
 
-const getAwsCredentials = async () => {
-  try {
-    const command = new GetSecretValueCommand({ SecretId: 'atul-cred' });
-    const data = await secretsManagerClient.send(command);
-
-    if (data.SecretString) {
-      const secret = JSON.parse(data.SecretString);
-      return {
-        accessKeyId: secret.AWS_ACCESS_KEY_ID,
-        secretAccessKey: secret.AWS_SECRET_ACCESS_KEY,
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching secrets:', error.message);
-    throw new Error('Failed to retrieve AWS credentials');
-  }
-};
 
 let s3;
 (async () => {

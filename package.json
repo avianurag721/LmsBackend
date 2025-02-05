@@ -1,7 +1,7 @@
 {
   "name": "dear30",
   "version": "1.0.0",
-  "description": "deer 30 backend",
+  "description": "LMS backend",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,8 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.731.1",
-    "@aws-sdk/client-secrets-manager": "^3.731.1",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
