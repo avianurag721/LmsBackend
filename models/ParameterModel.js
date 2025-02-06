@@ -1,5 +1,6 @@
+const mongoose=require("mongoose")
+
 const parameterSchema = new mongoose.Schema({
-  testId: { type: mongoose.Schema.Types.ObjectId, ref: "Test", required: true },
   parameterName: { type: String, required: true },
   unit: { type: String },
   isQualitative: { type: Boolean, default: false },
@@ -30,3 +31,6 @@ const parameterSchema = new mongoose.Schema({
     },
   ],
 });
+
+
+module.exports=mongoose.model("Parameter",parameterSchema)
