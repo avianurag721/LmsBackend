@@ -5,7 +5,7 @@ const parameterSchema = new mongoose.Schema({
   unit: { type: String },
   isQualitative: { type: Boolean, default: false },
   qualitativeOptions: [{ type: String }], 
-  referenceType: { type: String, enum: ["General", "GenderBased", "AgeBased"], required: true },
+  referenceType: { type: String, enum: ["generalRange", "genderBasedRanges", "ageBasedRanges"], required: true },
   generalRange: {
     min: { type: Number },
     max: { type: Number },
