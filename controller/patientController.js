@@ -1,37 +1,46 @@
 const Patient = require("../models/PatientModel");
 
-
 exports.createPatient = async (req, res) => {
     try {
         const { name, age, gender, contact, address } = req.body;
 
-        // Check required fields
+        // ✅ Validate Required Fields
         if (!name || !age || !gender || !contact) {
             return res.status(400).json({ message: "Name, age, gender, and contact are required." });
         }
 
-        // 🔍 Check for existing patient with the same name & contact
-        const existingPatient = await Patient.findOne({ name, contact });
+        // ✅ Validate Age (Must be a positive number)
+        if (!Number.isInteger(age) || age <= 0) {
+            return res.status(400).json({ message: "Age must be a positive number." });
+        }
+
+        // ✅ Check if Patient Exists (Case-Insensitive Search)
+        const existingPatient = await Patient.findOne({
+            name: { $regex: new RegExp(`^${name}$`, "i") }, // Case-insensitive name match
+            contact
+        }).lean(); // Use `lean()` for performance
+
         if (existingPatient) {
             return res.status(400).json({
                 message: "A patient with this name and contact already exists.",
-                patientId: existingPatient._id // Return the existing patient's ID
+                patientId: existingPatient._id // Return existing patient ID
             });
         }
 
-        // ✅ If no duplicate, create new patient
-        const newPatient = new Patient({ name, age, gender, contact, address });
-        await newPatient.save();
+        // ✅ Create New Patient
+        const newPatient = await Patient.create({ name, age, gender, contact, address });
 
         res.status(201).json({
             message: "Patient created successfully.",
             patient: newPatient
         });
+
     } catch (error) {
         console.error("Error creating patient:", error);
         res.status(500).json({ message: "Error creating patient.", error });
     }
 };
+
 
 
 // ✅ Get all patients
