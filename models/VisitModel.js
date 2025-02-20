@@ -22,7 +22,7 @@ const visitSchema = new mongoose.Schema({
     // Status Tracking
     status: { 
         type: String, 
-        enum: ["Pending", "Sample Collected", "Processing", "Verified", "Report Ready", "Sent"], 
+        enum: ["Pending", "Sample Collected", "Processing", "Verified", "Report Ready", "Sent", "Cancelled"], 
         default: "Pending" 
     },
 
@@ -49,25 +49,29 @@ const visitSchema = new mongoose.Schema({
         enum: ["Not Cancelled", "Cancelled"],
         default: "Not Cancelled"
     },
+    cancellationCharge: { type: Number, default: 0 }, // Charge applied upon cancellation
+    refundedAmount: { type: Number, default: 0 }, // Refund amount if applicable
     cancellationReason: { type: String }, // Reason for cancellation
-    cancelledAt: { type: Date }, // When it was cancelled
+    cancelledAt: { type: Date }, // Timestamp when cancelled
 
 }, { timestamps: true });
 
-// Modify Virtual Fields to Exclude Cancelled Visits
+// **Modify Virtual Fields to Exclude Cancelled Visits from Revenue**
 visitSchema.virtual("totalBill").get(function () {
-    if (this.cancellationStatus === "Cancelled") return 0;  // Exclude cancelled visits from revenue
+    if (this.cancellationStatus === "Cancelled") return 0;  // **Exclude from revenue**
     return this.tests.reduce((total, test) => {
         return total + (test.price - (test.price * test.discount / 100));
     }, 0);
 });
 
 visitSchema.virtual("totalPaid").get(function () {
-    if (this.cancellationStatus === "Cancelled") return 0;  
     return this.payments.reduce((sum, payment) => sum + payment.amount, 0);
 });
 
 visitSchema.virtual("dueAmount").get(function () {
+    if (this.cancellationStatus === "Cancelled") {
+        return this.cancellationCharge - this.totalPaid; // **Only consider cancellation charge**
+    }
     return this.totalBill - this.totalPaid;
 });
 
