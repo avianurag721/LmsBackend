@@ -46,19 +46,42 @@ const visitSchema = new mongoose.Schema({
     reportGeneratedAt: { type: Date }, // When report was generated
     reportSentAt: { type: Date }, // When report was sent
     reportSentBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Who sent the report
+    
+    // Payment Status
     paymentStatus: { 
         type: String, 
         enum: ["Unpaid", "Paid", "Partially Paid"], 
         default: "Unpaid" 
     }, 
 
-    // Virtual field to auto-calculate total bill after discounts
+    // **NEW: Payment Transactions**
+    payments: [
+        {
+            amount: { type: Number, required: true }, // Amount paid
+            method: { type: String, enum: ["Cash", "Card", "Online"], required: true }, // Payment method
+            status: { type: String, enum: ["Pending", "Completed"], default: "Completed" }, // Payment status
+            transactionId: { type: String }, // Optional, for online payments
+            date: { type: Date, default: Date.now } // Payment date
+        }
+    ],
+
 }, { timestamps: true });
 
+// Virtual field to auto-calculate total bill after discounts
 visitSchema.virtual("totalBill").get(function () {
     return this.tests.reduce((total, test) => {
         return total + (test.price - (test.price * test.discount / 100));
     }, 0);
+});
+
+// Virtual field to calculate total paid amount
+visitSchema.virtual("totalPaid").get(function () {
+    return this.payments.reduce((sum, payment) => sum + payment.amount, 0);
+});
+
+// Virtual field to calculate due amount
+visitSchema.virtual("dueAmount").get(function () {
+    return this.totalBill - this.totalPaid;
 });
 
 // Ensure virtuals are included in JSON output
