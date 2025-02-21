@@ -10,9 +10,19 @@ const visitSchema = new mongoose.Schema({
             testId: { type: mongoose.Schema.Types.ObjectId, ref: "Test", required: true },
             price: { type: Number, required: true },
             discount: { type: Number, default: 0, min: 0, max: 100 },
+            results: {
+                technicianId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+                recordedAt: { type: Date },
+                parameters: [
+                    {
+                        name: { type: String, required: true },  // e.g., "Glucose Level"
+                        value: { type: String, required: true }  // e.g., "110 mg/dL"
+                    }
+                ]
+            }
         }
-    ],
-
+    ]
+,
     // Sample Collection & Verification Details
     sampleCollectedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     sampleCollectionDate: { type: Date },
