@@ -64,8 +64,37 @@ exports.collectSample = async (req, res) => {
     res.status(500).json({ message: "Error collecting sample.", error });
   }
 };
+exports.forResultFilling = async (req, res) => {
+    try {
+      const { visitId, sampleCollectedBy } = req.body;
+  
+      // Find and update visit with sample collection details
+      const visit = await Visit.findOneAndUpdate(
+        { visitId },
+        {
+          sampleCollectedBy,
+          sampleCollectionDate: new Date(),
+          status: "Sample Collected",
+        },
+        { new: true }
+      );
+  
+      if (!visit) return res.status(404).json({ message: "Visit not found." });
+  
+      // Find tests that do NOT have results
+      const unfilledTests = visit.tests.filter(test => !test.results || !test.results.parameters || test.results.parameters.length === 0);
+  
+      res.json({
+        message: "Sample collected successfully.",
+        unfilledTests
+      });
+  
+    } catch (error) {
+      console.error("Error collecting sample:", error);
+      res.status(500).json({ message: "Error collecting sample.", error });
+    }
+  };  
 
-// ✅ 4. Verify Test
 
 exports.addTestResults = async (req, res) => {
     try {
