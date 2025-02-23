@@ -8,7 +8,7 @@ router.put("/update-status", visitController.updateVisitStatus);
 // ✅ 2. Collect Sample
 router.get("/pending-visit", visitController.getAllNewVisits);
 router.put("/collect-sample", visitController.collectSample);
-router.put("/for-result-filling", visitController.forResultfilling);
+router.put("/for-result-filling", visitController.forResultFilling);
 
 // ✅ 3. Verify Test
 router.put("/verify-test", visitController.verifyTest);
