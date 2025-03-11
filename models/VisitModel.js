@@ -8,21 +8,25 @@ const visitSchema = new mongoose.Schema({
     tests: [
         {
             testId: { type: mongoose.Schema.Types.ObjectId, ref: "Test", required: true },
-            price: { type: Number, required: true },
+            price: { type: Number, required: true },  // Ensure price is required
             discount: { type: Number, default: 0, min: 0, max: 100 },
+            testStatus: { type: String, enum: ["Pending", "Completed", "Cancelled"], default: "Pending" }, // Individual test status
+            cancellationStatus: { type: String, enum: ["Not Cancelled", "Cancelled"], default: "Not Cancelled" },
+            cancellationReason: { type: String },
+            cancelledAt: { type: Date },
+
             results: {
-                technicianId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-                recordedAt: { type: Date }, 
+                recordedAt: { type: Date },
                 parameters: [
                     {
-                        name: { type: String, required: true },  // e.g., "Glucose Level"
-                        value: { type: String, required: true }  // e.g., "110 mg/dL"
+                        name: { type: String },  // e.g., "Glucose Level"
+                        value: { type: String }  // e.g., "110 mg/dL"
                     }
                 ]
             }
         }
-    ]
-,
+    ],
+
     // Sample Collection & Verification Details
     sampleCollectedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     sampleCollectionDate: { type: Date },
@@ -45,8 +49,8 @@ const visitSchema = new mongoose.Schema({
 
     payments: [
         {
-            amount: { type: Number, required: true },
-            method: { type: String, enum: ["Cash", "Card", "Online"], required: true },
+            amount: { type: Number },
+            method: { type: String, enum: ["Cash", "Card", "Online"] },
             status: { type: String, enum: ["Pending", "Completed"], default: "Completed" },
             transactionId: { type: String },
             date: { type: Date, default: Date.now }
@@ -62,14 +66,25 @@ const visitSchema = new mongoose.Schema({
     cancellationCharge: { type: Number, default: 0 }, // Charge applied upon cancellation
     refundedAmount: { type: Number, default: 0 }, // Refund amount if applicable
     cancellationReason: { type: String }, // Reason for cancellation
-    cancelledAt: { type: Date }, // Timestamp when cancelled
+    cancelledAt: { type: Date } // Timestamp when cancelled
 
 }, { timestamps: true });
+
+// **Virtual Field for Final Amount of Each Test**
+visitSchema.virtual("tests.finalAmount").get(function () {
+    return this.tests.map(test => ({
+        testId: test.testId,
+        price: test.price,
+        discount: test.discount,
+        finalAmount: test.price - (test.price * test.discount / 100)
+    }));
+});
 
 // **Modify Virtual Fields to Exclude Cancelled Visits from Revenue**
 visitSchema.virtual("totalBill").get(function () {
     if (this.cancellationStatus === "Cancelled") return 0;  // **Exclude from revenue**
     return this.tests.reduce((total, test) => {
+        if (test.cancellationStatus === "Cancelled") return total; // Skip cancelled tests
         return total + (test.price - (test.price * test.discount / 100));
     }, 0);
 });

@@ -5,13 +5,22 @@ const Test = require("../models/TestModel");
 // ✅ 1. Register a New Visit
 exports.registerVisit = async (req, res) => {
   try {
-    const { patientId, tests } = req.body;
-
-    if (!patientId || !Array.isArray(tests) || tests.length === 0) {
+    const { patientId, selectedTests } = req.body;
+    // console.log(patientId, selectedTests);
+    if (
+      !patientId ||
+      !Array.isArray(selectedTests) ||
+      selectedTests.length === 0
+    ) {
       return res
         .status(400)
         .json({ message: "Patient ID and at least one test are required." });
     }
+    const tests = selectedTests.map(({ _id, ...rest }) => ({
+      ...rest,
+      testId: _id, // Renaming _id to testId
+    }));
+    console.log(tests)
 
     const visit = new Visit({
       patientId,
@@ -124,17 +133,22 @@ exports.cancelVisit = async (req, res) => {
         .json({ success: false, message: "Visit is already cancelled." });
     }
 
-    // Update cancellation details
+    // Cancel each test within the visit
+    visit.tests.forEach(test => {
+      test.status = "Cancelled";
+      test.cancellationStatus = "Cancelled";
+      test.cancelledAt = new Date();
+      test.cancellationReason = cancellationReason;
+    });
+
+    // Update visit cancellation details
     visit.cancellationStatus = "Cancelled";
     visit.cancellationCharge = cancellationCharge;
     visit.cancellationReason = cancellationReason;
     visit.cancelledAt = new Date();
 
     // Calculate total amount paid so far
-    const totalPaid = visit.payments.reduce(
-      (sum, payment) => sum + payment.amount,
-      0
-    );
+    const totalPaid = visit.payments.reduce((sum, payment) => sum + payment.amount, 0);
 
     // Determine refund amount (if applicable)
     let refundedAmount = 0;
@@ -159,7 +173,7 @@ exports.cancelVisit = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Visit cancelled successfully.",
+      message: "Visit and all tests cancelled successfully.",
       visit,
       refundedAmount: refundedAmount > 0 ? refundedAmount : 0,
       remainingDue:
@@ -172,9 +186,56 @@ exports.cancelVisit = async (req, res) => {
       .json({ success: false, message: "Error cancelling visit.", error });
   }
 };
+exports.cancelTest = async (req, res) => {
+  try {
+    const { visitId, testId } = req.params;
+    const { cancellationReason } = req.body;
 
+    // Find the visit
+    const visit = await Visit.findOne({ visitId });
+    if (!visit) {
+      return res.status(404).json({ success: false, message: "Visit not found." });
+    }
+
+    // Find the test inside the visit
+    const test = visit.tests.find(t => t.testId.toString() === testId);
+    if (!test) {
+      return res.status(404).json({ success: false, message: "Test not found in visit." });
+    }
+
+    // Check if already cancelled
+    if (test.status === "Cancelled") {
+      return res.status(400).json({ success: false, message: "Test is already cancelled." });
+    }
+
+    // Cancel the test
+    test.status = "Cancelled";
+    test.cancellationStatus = "Cancelled";
+    test.cancellationReason = cancellationReason;
+    test.cancelledAt = new Date();
+
+    // Save the visit with updated test status
+    await visit.save();
+
+    // Check if all tests are cancelled, then cancel the visit automatically
+    const allTestsCancelled = visit.tests.every(t => t.status === "Cancelled");
+    if (allTestsCancelled) {
+      visit.cancellationStatus = "Cancelled";
+      visit.cancelledAt = new Date();
+      await visit.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Test cancelled successfully.",
+      visit,
+    });
+  } catch (error) {
+    console.error("Error cancelling test:", error);
+    res.status(500).json({ success: false, message: "Error cancelling test.", error });
+  }
+};
 // ✅ 2. Update Visit Status (e.g., Sample Collection, Processing, Verified)
-
 
 // ✅ 11. Update Payment Status
 exports.updatePaymentStatus = async (req, res) => {
