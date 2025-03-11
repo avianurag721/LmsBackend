@@ -12,7 +12,7 @@ const visitSchema = new mongoose.Schema({
             discount: { type: Number, default: 0, min: 0, max: 100 },
             results: {
                 technicianId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-                recordedAt: { type: Date },
+                recordedAt: { type: Date }, 
                 parameters: [
                     {
                         name: { type: String, required: true },  // e.g., "Glucose Level"
